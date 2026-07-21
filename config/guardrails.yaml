@@ -1,0 +1,51 @@
+guardrails:
+  max_query_length: 500
+  max_sentences: 3
+  advisory_phrases:
+    - should i invest
+    - should i buy
+    - should i sell
+    - should i hold
+    - recommend
+    - recommendation
+    - give me advice
+    - is it good to invest
+    - good to invest
+    - good investment
+    - safe investment
+    - right investment
+    - suitable for me
+    - worth it
+    - which fund is better
+    - which is better
+    - which fund should i choose
+    - which fund should i buy
+    - better fund
+    - worth investing
+    - good time to invest
+    - invest now
+    - buy now
+    - sell now
+    - how much should i invest
+    - suggest a fund
+    - pick a fund
+    - choose between
+  comparison_phrases:
+    - or the
+    - vs
+    - versus
+    - compare
+    - comparison
+    - which one should
+  performance_opinion_phrases:
+    - will outperform
+    - will it beat
+    - going to return
+    - predict return
+    - expected return
+    - projected return
+    - guaranteed return
+    - return potential
+    - future return
+    - best performing fund
+    - top fund to buy

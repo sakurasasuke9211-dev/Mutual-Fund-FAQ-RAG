@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: fundfacts-ui
+    runtime: static
+    rootDir: ui
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

@@ -1,0 +1,9 @@
+api:
+  max_context_turns: 3
+  title: Mutual Fund FAQ Assistant API
+  version: "1.0.0"
+  thread_store: sqlite
+  thread_db_path: data/threads.db
+  cors_allowed_origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173

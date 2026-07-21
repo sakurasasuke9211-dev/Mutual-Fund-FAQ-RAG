@@ -1,0 +1,73 @@
+name: Daily Corpus Ingestion
+
+on:
+  schedule:
+    # 9:15 AM IST = 3:45 AM UTC
+    - cron: "45 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: corpus-ingestion
+  cancel-in-progress: false
+
+jobs:
+  groww_corpus_refresh:
+    name: groww_corpus_refresh
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium
+
+      - name: Cache Hugging Face model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: huggingface-bge-small-${{ hashFiles('requirements.txt') }}
+
+      - name: Run full ingestion pipeline (scrape → parse → chunk → embed → Chroma Cloud)
+        env:
+          VECTOR_STORE_PROVIDER: chroma_cloud
+          CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
+          CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
+          CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
+          INDEX_MANIFEST_DIR: data/index
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m ingestion.pipeline
+
+      - name: Upload ingestion logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ingestion-logs
+          path: logs/ingestion/
+          retention-days: 7
+
+      - name: Upload scrape snapshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrape-snapshots
+          path: data/raw/
+          retention-days: 7
+
+      - name: Upload index manifest on success
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: index-manifest
+          path: data/index/manifest.json
+          retention-days: 30

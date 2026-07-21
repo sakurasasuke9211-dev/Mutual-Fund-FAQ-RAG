@@ -1,0 +1,12 @@
+chunking:
+  min_tokens: 30
+  max_tokens: 500
+  overlap_tokens: 50
+  prose_target_tokens: 300
+  enrichment_template: |
+    Scheme: {scheme_name}
+    Category: {scheme_category}
+    Section: {section_title}
+    Source: {source_url}
+
+    {chunk_body}

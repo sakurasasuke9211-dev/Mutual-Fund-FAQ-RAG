@@ -1,0 +1,35 @@
+amc: "HDFC Mutual Fund"
+source_platform: "groww.in"
+format: html
+
+schemes:
+  - name: "HDFC Mid Cap Fund – Direct Growth"
+    category: mid-cap
+    slug: hdfc-mid-cap-fund-direct-growth
+    url: "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth"
+
+  - name: "HDFC Equity Fund – Direct Growth"
+    category: equity
+    slug: hdfc-equity-fund-direct-growth
+    url: "https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth"
+
+  - name: "HDFC Focused Fund – Direct Growth"
+    category: focused
+    slug: hdfc-focused-fund-direct-growth
+    url: "https://groww.in/mutual-funds/hdfc-focused-fund-direct-growth"
+
+  - name: "HDFC ELSS Tax Saver Fund – Direct Plan Growth"
+    category: elss
+    slug: hdfc-elss-tax-saver-fund-direct-plan-growth
+    url: "https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth"
+
+  - name: "HDFC Large Cap Fund – Direct Growth"
+    category: large-cap
+    slug: hdfc-large-cap-fund-direct-growth
+    url: "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
+
+refusal_links:
+  - label: "AMFI investor education"
+    url: "https://www.amfiindia.com/investor/knowledge-center"
+  - label: "SEBI mutual fund investor corner"
+    url: "https://investor.sebi.gov.in/mutual_funds.html"

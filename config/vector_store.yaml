@@ -1,0 +1,5 @@
+vector_store:
+  provider: chroma_cloud
+  collection_name: mutual_fund_faq_chunks
+  cloud_host: api.trychroma.com
+  cloud_port: 443
