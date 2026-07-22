@@ -1,7 +1,7 @@
 # FastAPI query service for Railway (and other container hosts).
 # Does not install Playwright or Streamlit — those are for ingestion / Streamlit Cloud.
 
-FROM python:3.11-slim-bookworm
+FROM python:3.11-alpine
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -10,13 +10,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache --virtual .build-deps \
+        build-base \
+        libffi-dev
 
 COPY requirements-api.txt .
 RUN pip install --upgrade pip \
-    && pip install --only-binary :all: -r requirements-api.txt
+    && pip install --no-compile -r requirements-api.txt \
+    && apk del .build-deps
 
 COPY app ./app
 COPY citation ./citation
