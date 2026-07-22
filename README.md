@@ -145,6 +145,7 @@ Guardrails are **on by default**. Use `--no-guardrails` to run the Phase 2-only 
 
 ```bash
 pip install -r requirements.txt
+# Or lean API-only install: pip install -r requirements-api.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -181,9 +182,10 @@ npm install
 npm run dev
 ```
 
-The UI opens at `http://localhost:5173`. Free production hosting uses Streamlit
-Community Cloud (`streamlit_app.py`). GitHub Actions remains the ingestion
-scheduler. See the [deployment plan](docs/deployment-plan.md).
+The UI opens at `http://localhost:5173`. Free production Q&A uses Streamlit
+Community Cloud (`streamlit_app.py`). Optional public REST for this React UI:
+Railway (`Dockerfile` + `railway.toml`) + Vercel (`VITE_API_BASE_URL`). See the
+[deployment plan](docs/deployment-plan.md).
 
 ### Streamlit (free production app)
 

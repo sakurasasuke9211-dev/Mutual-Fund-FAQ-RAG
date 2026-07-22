@@ -153,10 +153,18 @@ free/paid host later while keeping Streamlit as a lighter demo UI.
 - No `POST /threads` or `POST /chat` REST contract
 - No durable multi-user SQLite thread store across users (session state only)
 
-## 5. Optional FastAPI + Vercel React UI
+## 5. Optional FastAPI (Railway) + Vercel React UI
 
 The free production path is Streamlit only. Deploy the React UI on Vercel only when
 you also host FastAPI publicly (Streamlit does **not** expose `/health` or `/chat`).
+
+Repo files for Railway:
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | API image (uses `requirements-api.txt`, no Playwright/Streamlit) |
+| `railway.toml` | Dockerfile builder, start command, `/health` check |
+| `requirements-api.txt` | Lean runtime deps for the query API |
 
 ### Local development
 
@@ -170,6 +178,41 @@ copy .env.example .env
 npm.cmd install
 npm.cmd run dev
 ```
+
+### Railway FastAPI steps
+
+1. Open [https://railway.app](https://railway.app) and sign in with GitHub.
+2. **New Project → Deploy from GitHub repo** → `sakurasasuke9211-dev/Mutual-Fund-FAQ-RAG`.
+3. Root directory: repository root (Railway reads `railway.toml` + `Dockerfile`).
+4. Set service variables (same Chroma/Groq values as Streamlit):
+
+```text
+VECTOR_STORE_PROVIDER=chroma_cloud
+CHROMA_API_KEY=ck-xxxxxxxx
+CHROMA_TENANT=your-tenant-uuid
+CHROMA_DATABASE=your-database-name
+CHROMA_COLLECTION_NAME=mutual_fund_faq_chunks
+
+EMBEDDING_PROVIDER=sentence_transformers
+EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
+EMBEDDING_DIMENSIONS=384
+
+LLM_PROVIDER=groq
+LLM_MODEL=llama-3.3-70b-versatile
+GROQ_API_KEY=gsk_xxxxxxxx
+
+THREAD_STORE=memory
+CORS_ALLOWED_ORIGINS=https://mutual-fund-faq-rag-ui.vercel.app
+```
+
+5. **Settings → Networking → Generate Domain**.
+6. Verify `https://<railway-domain>/health` returns `{"status":"ok"}`.
+
+`THREAD_STORE=memory` avoids needing a volume. For durable threads later, attach a
+volume and set `THREAD_DB_PATH` on it with `THREAD_STORE=sqlite`.
+
+First boot downloads the BGE embedding model and may take several minutes. Prefer
+a plan with enough RAM (≈2 GB+) so `sentence-transformers` does not OOM.
 
 ### Vercel project settings
 
@@ -190,30 +233,32 @@ Production branch: main
 ### Required Vercel environment variable
 
 ```text
-VITE_API_BASE_URL=https://<public-fastapi-host>
+VITE_API_BASE_URL=https://<railway-domain>
 ```
 
-Set it for Production. Never put Groq or Chroma credentials in `VITE_` variables.
+Set it for Production, then **redeploy** Vercel (Vite embeds this at build time).
+Never put Groq or Chroma credentials in `VITE_` variables.
 
 ### CORS coordination
 
-After Vercel assigns the production URL, set on the FastAPI host:
+After Vercel has its production URL, set on Railway:
 
 ```text
-CORS_ALLOWED_ORIGINS=https://<your-project>.vercel.app
+CORS_ALLOWED_ORIGINS=https://mutual-fund-faq-rag-ui.vercel.app
 ```
 
-No trailing slash. Redeploy FastAPI after updating CORS, then redeploy Vercel if the
-API base URL changed.
+No trailing slash. Redeploy Railway after updating CORS if the service does not
+hot-reload env vars.
 
 ## 6. Recommended deployment order
 
 1. Configure GitHub Actions Chroma secrets.
 2. Run ingestion successfully.
 3. Create Streamlit Community Cloud app from this repo (`streamlit_app.py`).
-4. Paste Streamlit secrets.
-5. Open the `*.streamlit.app` URL and smoke-test factual + refusal questions.
-6. Keep the daily GitHub Actions schedule enabled.
+4. Paste Streamlit secrets and smoke-test the Streamlit URL.
+5. (Optional) Deploy FastAPI on Railway with `Dockerfile` / `railway.toml`.
+6. (Optional) Set Vercel `VITE_API_BASE_URL` to the Railway HTTPS origin and redeploy.
+7. Keep the daily GitHub Actions schedule enabled.
 
 ## 7. Verification
 
@@ -225,6 +270,12 @@ On the Streamlit app URL:
 - Advisory questions show the facts-only refusal path.
 - Chroma/Groq auth failures are visible as clear errors, not silent empty replies.
 
+On Railway + Vercel (optional):
+
+- `GET /health` on the Railway domain returns `{"status":"ok"}`.
+- Vercel shows **Connected**.
+- Chat and refusals work end-to-end over HTTPS.
+
 Scheduler checks remain the same as before (manual dispatch, artifacts, Chroma
 counts).
 
@@ -232,10 +283,12 @@ counts).
 
 - **GitHub Actions** — ingestion success/failure.
 - **Streamlit Cloud** — reboot app, view logs, update secrets, redeploy from `main`.
+- **Railway** — deploy logs, OOM/restarts, `/health` failures.
+- **Vercel** — build failures and frontend deployment status.
 - **Chroma / Groq** — vendor dashboards for auth and rate limits.
 
-Rollback: redeploy a previous Git commit from Streamlit Cloud, or revert `main`
-and let the app rebuild.
+Rollback: redeploy a previous Git commit from Streamlit Cloud / Railway / Vercel,
+or revert `main` and let services rebuild.
 
 ## 9. Release checklist
 
@@ -245,3 +298,4 @@ and let the app rebuild.
 - [ ] Public `*.streamlit.app` URL works over HTTPS.
 - [ ] Factual and refusal smoke tests passed.
 - [ ] Scheduler remains enabled after a green run.
+- [ ] (Optional) Railway `/health` OK and Vercel Connected.
