@@ -30,8 +30,11 @@ VITE_API_BASE_URL=http://127.0.0.1:8001
 
 Do not put Groq, Chroma, or other secrets in UI environment variables.
 
-See [`docs/deployment-plan.md`](../docs/deployment-plan.md) for the Streamlit
-Community Cloud production path.
+See [`docs/deployment-plan.md`](../docs/deployment-plan.md) for Streamlit Community
+Cloud (free production) and optional Vercel + public FastAPI hosting.
+
+Production Vercel project: root directory `ui`, env `VITE_API_BASE_URL` must point
+at a public FastAPI host (not the Streamlit app URL).
 
 ## Checks
 

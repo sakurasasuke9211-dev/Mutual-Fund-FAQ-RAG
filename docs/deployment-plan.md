@@ -153,9 +153,12 @@ free/paid host later while keeping Streamlit as a lighter demo UI.
 - No `POST /threads` or `POST /chat` REST contract
 - No durable multi-user SQLite thread store across users (session state only)
 
-## 5. Optional local FastAPI + React UI
+## 5. Optional FastAPI + Vercel React UI
 
-For development and API contract testing:
+The free production path is Streamlit only. Deploy the React UI on Vercel only when
+you also host FastAPI publicly (Streamlit does **not** expose `/health` or `/chat`).
+
+### Local development
 
 ```powershell
 python -m uvicorn app.main:app --reload --port 8001
@@ -168,8 +171,40 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Production Vercel deployment of `ui/` is optional and only useful when a public
-FastAPI URL exists.
+### Vercel project settings
+
+Create a Vercel project from the same GitHub repository (or deploy `ui/` via CLI):
+
+```text
+Framework preset: Vite
+Root directory: ui
+Install command: npm ci
+Build command: npm run build
+Output directory: dist
+Node.js version: 22
+Production branch: main
+```
+
+`ui/vercel.json` provides an SPA rewrite so deep links refresh correctly.
+
+### Required Vercel environment variable
+
+```text
+VITE_API_BASE_URL=https://<public-fastapi-host>
+```
+
+Set it for Production. Never put Groq or Chroma credentials in `VITE_` variables.
+
+### CORS coordination
+
+After Vercel assigns the production URL, set on the FastAPI host:
+
+```text
+CORS_ALLOWED_ORIGINS=https://<your-project>.vercel.app
+```
+
+No trailing slash. Redeploy FastAPI after updating CORS, then redeploy Vercel if the
+API base URL changed.
 
 ## 6. Recommended deployment order
 
