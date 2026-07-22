@@ -319,7 +319,7 @@ These are release-blocking properties regardless of individual case:
 | THR-004 | SQLite file missing | Create schema safely | Medium | Integration |
 | THR-005 | SQLite file corrupt, locked, read-only, disk full, or migration mismatch | Fail readiness/operation clearly; no silent memory fallback | High | Fault |
 | THR-006 | Two API workers use SQLite | Evaluate lock contention and documented single-instance limitation | High | Load |
-| THR-007 | Koyeb redeploys without durable volume | Document/alert that free/eco SQLite thread history is lost; attach a paid Volume or external store for durable production | High | Deployment |
+| THR-007 | Streamlit session ends or Cloud app reboots | Session chat history is lost; user starts a new conversation without cross-user leakage | High | Deployment |
 | THR-008 | Assistant metadata JSON is malformed or has unexpected types | Do not crash history endpoint/UI; quarantine bad record | Medium | Fault |
 
 ## 14. API behavior, concurrency, and security
@@ -341,9 +341,9 @@ These are release-blocking properties regardless of individual case:
 | API-013 | Thread list contains thousands of threads/messages | Pagination/limits or documented scalability bound; acceptable latency | Medium | Load |
 | API-014 | Server clock changes and timestamps tie | Stable ordering and UTC-aware values | Medium | Integration |
 | API-015 | Backend version/schema changes while old UI is deployed | UI handles missing optional fields and surfaces incompatible contract | High | Contract |
-| API-016 | HTTPS proxy/Koyeb headers and host differ from local | URLs, CORS, and generated OpenAPI remain correct | Medium | Deployment |
+| API-016 | HTTPS proxy/host headers differ from local FastAPI | URLs, CORS, and generated OpenAPI remain correct | Medium | Deployment |
 
-## 15. UI and Koyeb / Vercel deployment
+## 15. UI and Streamlit / optional REST deployment
 
 | ID | Edge case / stimulus | Expected behavior | Severity | Layer |
 |---|---|---|---|---|
@@ -397,7 +397,7 @@ These scenarios exercise interactions that isolated unit tests will miss.
 | CMP-006 | Prompt injection exists both in scraped content and user query | Neither source nor user can override guardrails/citation policy | Critical | Security E2E |
 | CMP-007 | Chroma is unavailable, Groq is healthy, BM25 cache is stale | Do not generate a confident answer from mismatched/stale context | Critical | Fault E2E |
 | CMP-008 | Groq returns advisory text with a valid factual citation | Response validator converts it to facts-only refusal | Critical | Fault E2E |
-| CMP-009 | Koyeb redeploys API, ephemeral SQLite history disappears, browser retains old thread ID | UI recovers with new thread and clearly avoids mixing context | High | Deployment E2E |
+| CMP-009 | Streamlit Cloud reboots, browser retains old conversation UI state | UI recovers with a fresh session and clearly avoids mixing context | High | Deployment E2E |
 | CMP-010 | Two users concurrently create/switch threads and ask same generic follow-up | Correct independent schemes and message ordering for both | Critical | Load E2E |
 | CMP-011 | Scheduler and API use different Chroma tenant/collection after deployment change | Readiness/evaluation detects zero/mismatched corpus before user traffic | Critical | Deployment |
 | CMP-012 | Fund page changes label and value format, creating 23 chunks instead of documented 45–60 | Quality gate detects structural drift before new index is promoted | High | Evaluation |
