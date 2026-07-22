@@ -18,10 +18,25 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      - name: Validate required Chroma secrets
+        env:
+          CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
+          CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
+          CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
+        run: |
+          missing=0
+          for name in CHROMA_API_KEY CHROMA_TENANT CHROMA_DATABASE; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error title=Missing GitHub secret::$name is not configured in repository Actions secrets."
+              missing=1
+            fi
+          done
+          exit "$missing"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
@@ -33,7 +48,7 @@ jobs:
         run: playwright install chromium
 
       - name: Cache Hugging Face model
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: huggingface-bge-small-${{ hashFiles('requirements.txt') }}
@@ -44,13 +59,15 @@ jobs:
           CHROMA_API_KEY: ${{ secrets.CHROMA_API_KEY }}
           CHROMA_TENANT: ${{ secrets.CHROMA_TENANT }}
           CHROMA_DATABASE: ${{ secrets.CHROMA_DATABASE }}
+          CHROMA_COLLECTION_NAME: mutual_fund_faq_chunks
+          INGESTION_KEEP_LATEST_ONLY: "true"
           INDEX_MANIFEST_DIR: data/index
           PYTHONPATH: ${{ github.workspace }}
         run: python -m ingestion.pipeline
 
       - name: Upload ingestion logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ingestion-logs
           path: logs/ingestion/
@@ -58,7 +75,7 @@ jobs:
 
       - name: Upload scrape snapshots on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: scrape-snapshots
           path: data/raw/
@@ -66,7 +83,7 @@ jobs:
 
       - name: Upload index manifest on success
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: index-manifest
           path: data/index/manifest.json
