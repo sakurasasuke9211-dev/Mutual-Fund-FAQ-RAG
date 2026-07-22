@@ -163,8 +163,9 @@ Repo files for Railway:
 | File | Purpose |
 |------|---------|
 | `Dockerfile` | API image (uses `requirements-api.txt`, no Playwright/Streamlit) |
-| `railway.toml` | Dockerfile builder, start command, `/health` check |
+| `railway.json` | Dockerfile builder, start command, `/health` check |
 | `requirements-api.txt` | Lean runtime deps for the query API |
+| `.gitattributes` | Keeps Dockerfile line endings as LF (required on Railway) |
 
 ### Local development
 
@@ -183,7 +184,9 @@ npm.cmd run dev
 
 1. Open [https://railway.app](https://railway.app) and sign in with GitHub.
 2. **New Project → Deploy from GitHub repo** → `sakurasasuke9211-dev/Mutual-Fund-FAQ-RAG`.
-3. Root directory: repository root (Railway reads `railway.toml` + `Dockerfile`).
+3. Root directory: repository root (Railway reads `railway.json` + `Dockerfile`).
+   Ensure the service builder is **Dockerfile** (not Railpack) if the dashboard
+   override differs from `railway.json`.
 4. Set service variables (same Chroma/Groq values as Streamlit):
 
 ```text
@@ -256,7 +259,7 @@ hot-reload env vars.
 2. Run ingestion successfully.
 3. Create Streamlit Community Cloud app from this repo (`streamlit_app.py`).
 4. Paste Streamlit secrets and smoke-test the Streamlit URL.
-5. (Optional) Deploy FastAPI on Railway with `Dockerfile` / `railway.toml`.
+5. (Optional) Deploy FastAPI on Railway with `Dockerfile` / `railway.json`.
 6. (Optional) Set Vercel `VITE_API_BASE_URL` to the Railway HTTPS origin and redeploy.
 7. Keep the daily GitHub Actions schedule enabled.
 

@@ -1,0 +1,7 @@
+# Prevent Windows CRLF from breaking Linux Docker builds on Railway.
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+railway.json text eol=lf
+railway.toml text eol=lf
+requirements-api.txt text eol=lf
+*.sh text eol=lf

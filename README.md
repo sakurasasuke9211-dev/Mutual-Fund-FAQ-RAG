@@ -184,7 +184,7 @@ npm run dev
 
 The UI opens at `http://localhost:5173`. Free production Q&A uses Streamlit
 Community Cloud (`streamlit_app.py`). Optional public REST for this React UI:
-Railway (`Dockerfile` + `railway.toml`) + Vercel (`VITE_API_BASE_URL`). See the
+Railway (`Dockerfile` + `railway.json`) + Vercel (`VITE_API_BASE_URL`). See the
 [deployment plan](docs/deployment-plan.md).
 
 ### Streamlit (free production app)
