@@ -16,7 +16,7 @@ RUN apt-get update \
 
 COPY requirements-api.txt .
 RUN pip install --upgrade pip \
-    && pip install -r requirements-api.txt
+    && pip install --only-binary :all: -r requirements-api.txt
 
 COPY app ./app
 COPY citation ./citation
