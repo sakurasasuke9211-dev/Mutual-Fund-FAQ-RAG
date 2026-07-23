@@ -44,9 +44,9 @@ The value is embedded at build time. Do not put Groq, Chroma, or any other secre
 
    Replace the value with the actual frontend URL and redeploy the backend.
 
-See [`docs/deployment-plan.md`](../docs/deployment-plan.md) for the complete
-GitHub Actions, Vercel, Koyeb, Chroma, persistence, verification, and rollback
-plan.
+See [`docs/deployment-plan.md`](../docs/deployment-plan.md) for the free Streamlit
+Community Cloud production path. This React UI is for local development and optional
+paid FastAPI hosting; Streamlit Cloud does not expose a FastAPI base URL.
 
 ## Checks
 

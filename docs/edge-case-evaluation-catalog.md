@@ -421,7 +421,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 | GAP-011 | User switches from thread A to B while A’s request is in flight | Completed response updates A only and never appears in B’s visible state | High | Browser E2E |
 | GAP-012 | Dense retrieval, corpus listing, reranker, or citation resolver raises an unhandled exception | API returns sanitized controlled service/refusal response, not HTTP 500 | High | Fault integration |
 | GAP-013 | Public API response exposes internal `chunk_ids` | Limit audit identifiers to trusted telemetry/contracts or document intentional exposure | Medium | Security review |
-| GAP-014 | Repository deploy artifacts cover Koyeb API + Vercel UI | Backend deployment, secrets, health, CORS, and frontend build settings are defined or explicitly provisioned | High | Deployment |
+| GAP-014 | Free path uses Streamlit Cloud; REST FastAPI is optional | Streamlit app secrets, health/smoke checks, and optional FastAPI/Vercel hosting are documented separately | High | Deployment |
 | GAP-015 | `/health` returns OK while Chroma, LLM, model, corpus, or SQLite is unavailable | Separate liveness/readiness reports dependency degradation accurately | High | Integration |
 | GAP-016 | Source has not refreshed for more than freshness policy | API/UI display per-scheme stale warning; fetch freshness and content-change time remain distinct | High | E2E |
 | GAP-017 | Priority facts exist in `data/facts` but runtime answers never read them | Exact-metric routing contract is implemented or architecture is revised; facts and RAG values stay consistent | High | Architecture integration |
@@ -442,7 +442,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 6. **Chunk-count drift:** the detailed architecture estimates roughly 45–60 chunks, while observed v1 runs can produce about 23; establish an approved baseline and alert range.
 7. **Fund-size plausibility:** repeated identical fund-size values across unrelated schemes should trigger a parser-quality alarm.
 8. **Runtime corpus cache:** BM25 corpus caching requires an invalidation/restart strategy after ingestion updates.
-9. **Production thread storage:** SQLite is not a shared multi-instance store and is ephemeral on free/eco Koyeb without a paid Volume.
+9. **Production thread storage:** Streamlit free hosting uses browser/session state only; FastAPI SQLite is local/optional and not multi-instance safe.
 10. **Silent LLM fallback:** missing provider keys must not silently downgrade a production deployment to template generation.
 11. **Readiness depth:** `/health` should be evaluated against Chroma/model/thread-store readiness, not process liveness alone.
 12. **Exact allowlist semantics:** architecture mentions exact URLs or a prefix allowlist; choose one canonical policy and test redirects/query strings consistently.
@@ -468,7 +468,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 - End-to-end browser tests on desktop/mobile.
 - Fault injection for provider timeout, Chroma partial failure, and restart recovery.
 - Concurrent thread isolation/load test.
-- Koyeb / Vercel deployment smoke test with cold starts and CORS.
+- Streamlit Community Cloud smoke test (secrets, cold start, factual/refusal paths).
 
 ### Required targets
 

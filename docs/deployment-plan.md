@@ -1,13 +1,32 @@
 # Deployment Plan
 
-This plan deploys the Mutual Fund FAQ RAG system across three services:
+This plan deploys the Mutual Fund FAQ RAG system across:
 
-- **GitHub Actions** — scheduled corpus ingestion
-- **Vercel** — React/Vite frontend
-- **Koyeb** — FastAPI backend
+- **GitHub Actions** — scheduled corpus ingestion into Chroma Cloud
+- **Streamlit Community Cloud** — free hosted query app (RAG pipeline in-process)
 
-Chroma Cloud remains the shared vector database, and Groq remains the backend LLM
-provider.
+The React/Vite UI (`ui/`) and FastAPI app (`app/`) remain in the repository for
+local development and optional paid hosting. On the free production path they are
+not required.
+
+Chroma Cloud remains the shared vector database. Groq remains the LLM provider.
+
+## Important: Streamlit is free, but it is not a REST API host
+
+**Streamlit Community Cloud is free** for public apps connected to a GitHub repo.
+
+It hosts a **Streamlit web app**, not a FastAPI service. You get a public URL like:
+
+```text
+https://<app-name>.streamlit.app
+```
+
+You do **not** get endpoints such as `POST /chat` or `GET /health` from Streamlit
+Cloud. The “API” for the free path is the Streamlit app itself: it loads
+`RAGPipeline` in-process and answers chat turns in the browser UI.
+
+If you later need a public REST API again, host FastAPI on a separate free or paid
+compute provider and point `ui/` at that URL.
 
 ## 1. Target architecture
 
@@ -16,50 +35,32 @@ GitHub Actions scheduler
   └─ scrape → parse → chunk → embed → update Chroma Cloud
                                       ↑
                                       │
-Vercel frontend ── HTTPS ──> Koyeb FastAPI backend ──> Groq API
-                                      │
-                                      ├─> Chroma Cloud
-                                      └─> SQLite threads (ephemeral on free/eco;
-                                          optional paid Volume for persistence)
+Streamlit Community Cloud app ────────┘
+  (streamlit_app.py → RAGPipeline → Groq + Chroma Cloud)
 ```
 
-The scheduler and backend must use the same Chroma database, collection, embedding
-model, and embedding dimensions. GitHub Actions writes the latest corpus vectors;
-the Koyeb backend queries those vectors without requiring a backend redeployment.
+Local optional stack:
+
+```text
+React UI (Vite) ──> FastAPI (uvicorn) ──> Groq + Chroma Cloud
+```
 
 ## 2. Deployment prerequisites
 
-Create or confirm the following:
-
-- A GitHub repository containing this project.
-- A Chroma Cloud database and collection.
-- A Groq API key.
-- A Koyeb account for the FastAPI service.
-- A Vercel account for the React frontend.
-- A stable production frontend domain. A custom domain is recommended because
-  FastAPI CORS currently accepts exact origins rather than wildcard Vercel preview
-  URLs.
-
-Use separate production credentials from local development credentials where
-possible.
+- GitHub repository with this project (already: `Mutual-Fund-FAQ-RAG`)
+- Chroma Cloud database + collection populated by a successful ingestion run
+- Groq API key
+- Free [Streamlit Community Cloud](https://share.streamlit.io/) account (sign in with GitHub)
 
 ## 3. GitHub Actions scheduler
 
-### Existing workflow
-
-The scheduler is already defined in:
+Unchanged from the existing workflow:
 
 ```text
 .github/workflows/corpus-ingestion.yml
 ```
 
-It runs daily at **03:45 UTC / 09:15 IST** and supports manual
-`workflow_dispatch`.
-
-### Required GitHub Actions secrets
-
-Configure these under **GitHub repository → Settings → Secrets and variables →
-Actions**:
+Required Actions secrets:
 
 ```text
 CHROMA_API_KEY
@@ -67,12 +68,7 @@ CHROMA_TENANT
 CHROMA_DATABASE
 ```
 
-The ingestion job does not require the Groq key because generation occurs in the
-backend, not during indexing.
-
-### Required scheduler environment
-
-Keep these values aligned with the backend:
+Keep embedding settings aligned with the Streamlit app:
 
 ```text
 VECTOR_STORE_PROVIDER=chroma_cloud
@@ -80,333 +76,137 @@ CHROMA_COLLECTION_NAME=mutual_fund_faq_chunks
 EMBEDDING_PROVIDER=sentence_transformers
 EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
 EMBEDDING_DIMENSIONS=384
-INGESTION_KEEP_LATEST_ONLY=true
 ```
 
-### Scheduler deployment steps
+Run a successful ingestion once before expecting good Streamlit answers.
 
-1. Add the Chroma secrets to GitHub.
-2. Push the workflow to the production branch.
-3. Run **Actions → Daily Corpus Ingestion → Run workflow** manually.
-4. Confirm that all four phases complete: scrape, parse, chunk, embed/index.
-5. Confirm that the Chroma collection contains the expected scheme documents.
-6. Download and inspect the index manifest artifact.
-7. Leave the daily schedule enabled only after the manual run succeeds.
+## 4. Streamlit Community Cloud (free production app)
 
-### Scheduler retention and failures
-
-- The pipeline keeps only the newest local artifacts per component.
-- GitHub-hosted runner files disappear after the job.
-- Failure logs and raw snapshots are uploaded as temporary GitHub artifacts.
-- A failed scheduler run must not trigger a frontend or backend deployment.
-- GitHub Actions concurrency prevents two ingestion runs from modifying the
-  collection simultaneously.
-
-## 4. Koyeb backend
-
-### Why Koyeb
-
-Koyeb replaces Render for the FastAPI backend to avoid paid instance + disk cost
-for the portfolio deployment. Prefer a free/eco web service for the API. Persistent
-Volumes on Koyeb require a paid standard/GPU instance, so free-tier thread storage
-is ephemeral across redeploys unless you later attach a Volume.
-
-### Repository deploy artifacts
+### Repository entrypoint
 
 | File | Purpose |
 |------|---------|
-| `Dockerfile` | Preferred production build for FastAPI + embedding dependencies |
-| `.dockerignore` | Keeps the image free of UI, tests, docs, and local data |
-| `runtime.txt` | Pins Python 3.11.11 for buildpack-based deploys |
-| `Procfile` | Default web process for buildpack runtimes |
+| `streamlit_app.py` | Hosted chat UI + in-process RAG/guardrails |
+| `.streamlit/config.toml` | Streamlit server defaults |
+| `.streamlit/secrets.toml.example` | Template for Cloud secrets (do not commit real secrets) |
+| `requirements.txt` | Includes `streamlit` plus existing RAG dependencies |
 
-### Service configuration
+### Steps to deploy and get the public app URL
 
-Create a Koyeb **Web Service** from the GitHub repository:
-
-```text
-Deployment method: GitHub
-Repository: sakurasasuke9211-dev/Mutual-Fund-FAQ-RAG
-Branch: main
-Builder: Dockerfile (preferred) or Buildpack
-Instance: free / eco Nano (or larger if the embedding model OOMs)
-Regions: choose one close to users (for example fra or was)
-Port: 8000 (or $PORT provided by Koyeb)
-Health check: HTTP GET /health
-Min instances: 1 (or scale-to-zero if you accept cold starts)
-```
-
-If using Buildpack instead of Docker, override the run command to:
+1. Open [https://share.streamlit.io/](https://share.streamlit.io/) and sign in with GitHub.
+2. Click **New app**.
+3. Select repository `sakurasasuke9211-dev/Mutual-Fund-FAQ-RAG`.
+4. Branch: `main`.
+5. Main file path: `streamlit_app.py`.
+6. Open **Advanced settings → Secrets** and paste TOML secrets (see below).
+7. Click **Deploy**.
+8. After the build succeeds, copy the public URL shown in the browser / app settings:
 
 ```text
-python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+https://<your-app-name>.streamlit.app
 ```
 
-Koyeb should auto-deploy when commits land on `main` after the GitHub app is
-connected.
+That URL is the free hosted “backend + UI” for the portfolio.
 
-### Required Koyeb environment variables / secrets
+### Required Streamlit secrets (TOML)
 
-```text
-VECTOR_STORE_PROVIDER=chroma_cloud
-CHROMA_API_KEY=<secret>
-CHROMA_TENANT=<secret>
-CHROMA_DATABASE=<secret>
-CHROMA_COLLECTION_NAME=mutual_fund_faq_chunks
+Paste into Community Cloud secrets (same format as `.streamlit/secrets.toml.example`):
 
-EMBEDDING_PROVIDER=sentence_transformers
-EMBEDDING_MODEL=BAAI/bge-small-en-v1.5
-EMBEDDING_DIMENSIONS=384
+```toml
+VECTOR_STORE_PROVIDER = "chroma_cloud"
+CHROMA_API_KEY = "ck-xxxxxxxx"
+CHROMA_TENANT = "your-tenant-uuid"
+CHROMA_DATABASE = "your-database-name"
+CHROMA_COLLECTION_NAME = "mutual_fund_faq_chunks"
 
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.3-70b-versatile
-GROQ_API_KEY=<secret>
+EMBEDDING_PROVIDER = "sentence_transformers"
+EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+EMBEDDING_DIMENSIONS = "384"
 
-THREAD_STORE=sqlite
-THREAD_DB_PATH=/tmp/threads.db
-
-CORS_ALLOWED_ORIGINS=https://<production-frontend-domain>
+LLM_PROVIDER = "groq"
+LLM_MODEL = "llama-3.3-70b-versatile"
+GROQ_API_KEY = "gsk_xxxxxxxx"
 ```
 
-Store API keys and Chroma credentials as Koyeb secrets. Do not commit them.
-
-### SQLite persistence on Koyeb
-
-Default free/eco deployment:
-
-```text
-THREAD_DB_PATH=/tmp/threads.db
-```
-
-`/tmp` is writable but not durable across redeploys or new instances. Thread
-history may reset after a redeploy. That is acceptable for the portfolio free
-tier.
-
-Optional paid persistence later:
-
-1. Create a Koyeb Volume in the same region as the service.
-2. Attach it at `/var/data`.
-3. Set `THREAD_DB_PATH=/var/data/threads.db`.
-4. Keep scale fixed at one instance while using SQLite.
-
-SQLite still limits the API to a single writer-friendly instance. Move threads to
-a managed database before multi-instance scaling.
-
-### Deploy with the Koyeb control panel
-
-1. Sign in at [app.koyeb.com](https://app.koyeb.com).
-2. Create a Web Service and connect GitHub.
-3. Select this repository and the `main` branch.
-4. Choose Dockerfile build (or Buildpack + run-command override).
-5. Expose port `8000` / `$PORT` and set the `/health` HTTP check.
-6. Add the environment variables and secrets listed above.
-7. Deploy and copy the public `*.koyeb.app` URL.
-
-### Deploy with the Koyeb CLI (optional)
+Locally, copy the example file:
 
 ```powershell
-koyeb login
-koyeb app init fundfacts-api `
-  --git github.com/sakurasasuke9211-dev/Mutual-Fund-FAQ-RAG `
-  --git-branch main `
-  --dockerfile Dockerfile `
-  --port 8000:http `
-  --checks 8000:http:/health `
-  --env VECTOR_STORE_PROVIDER=chroma_cloud `
-  --env CHROMA_COLLECTION_NAME=mutual_fund_faq_chunks `
-  --env EMBEDDING_PROVIDER=sentence_transformers `
-  --env EMBEDDING_MODEL=BAAI/bge-small-en-v1.5 `
-  --env EMBEDDING_DIMENSIONS=384 `
-  --env LLM_PROVIDER=groq `
-  --env LLM_MODEL=llama-3.3-70b-versatile `
-  --env THREAD_STORE=sqlite `
-  --env THREAD_DB_PATH=/tmp/threads.db `
-  --env CORS_ALLOWED_ORIGINS=http://localhost:5173 `
-  --env CHROMA_API_KEY={{ secrets.CHROMA_API_KEY }} `
-  --env CHROMA_TENANT={{ secrets.CHROMA_TENANT }} `
-  --env CHROMA_DATABASE={{ secrets.CHROMA_DATABASE }} `
-  --env GROQ_API_KEY={{ secrets.GROQ_API_KEY }}
+copy .streamlit\secrets.toml.example .streamlit\secrets.toml
 ```
 
-Create the referenced secrets in the Koyeb control panel before running the
-command, or substitute direct `--env KEY=value` values only in a secure local
-shell that never commits them.
+Fill real values, then run:
 
-## 5. Vercel frontend
-
-Create a Vercel project from the same GitHub repository:
-
-```text
-Framework preset: Vite
-Root directory: ui
-Install command: npm ci
-Build command: npm run build
-Output directory: dist
-Node.js version: 22
-Production branch: main
+```powershell
+python -m streamlit run streamlit_app.py
 ```
 
-No `vercel.json` file is required for the initial deployment because Vercel detects
-Vite and serves its SPA fallback. Add one later only if explicit headers, redirects,
-or rewrites are needed.
+### Resource note
 
-### Required Vercel environment variable
+The query path loads `sentence-transformers` (BGE) and talks to Chroma Cloud + Groq.
+Streamlit Community Cloud free resources are limited. If the app OOMs on first
+load, reduce concurrency, reboot the app, or move the FastAPI path to a larger
+free/paid host later while keeping Streamlit as a lighter demo UI.
 
-```text
-VITE_API_BASE_URL=https://<koyeb-backend-domain>
+### What you will not get from Streamlit Cloud
+
+- No FastAPI OpenAPI docs at `/docs`
+- No `POST /threads` or `POST /chat` REST contract
+- No durable multi-user SQLite thread store across users (session state only)
+
+## 5. Optional local FastAPI + React UI
+
+For development and API contract testing:
+
+```powershell
+python -m uvicorn app.main:app --reload --port 8001
 ```
 
-Set it for the Production environment. Add the equivalent value to Preview only if
-preview deployments are intentionally allowed to use the production backend.
-
-Never expose Groq or Chroma credentials through a `VITE_` variable; Vite embeds
-those values in browser JavaScript.
-
-### CORS coordination
-
-After Vercel assigns the production URL:
-
-1. Set the Koyeb `CORS_ALLOWED_ORIGINS` value to that exact HTTPS origin.
-2. Do not include a trailing slash.
-3. Redeploy or restart the Koyeb backend service.
-4. Redeploy Vercel if the Koyeb backend URL changed.
-
-For multiple approved frontend domains, use a comma-separated value:
-
-```text
-CORS_ALLOWED_ORIGINS=https://fundfacts.example.com,https://fundfacts.vercel.app
+```powershell
+cd ui
+copy .env.example .env
+npm.cmd install
+npm.cmd run dev
 ```
 
-Dynamic Vercel preview origins are not automatically accepted by the current
-backend. Keep previews disconnected from production or add an explicit,
-security-reviewed preview-origin policy before enabling them.
+Production Vercel deployment of `ui/` is optional and only useful when a public
+FastAPI URL exists.
 
 ## 6. Recommended deployment order
 
-1. Provision Chroma Cloud and create production credentials.
-2. Configure GitHub Actions secrets.
-3. Run ingestion manually and verify the Chroma collection.
-4. Deploy the Koyeb backend.
-5. Verify the Koyeb `/health` endpoint.
-6. Decide whether free/ephemeral SQLite is acceptable or attach a paid Volume.
-7. Deploy the Vercel frontend with the Koyeb API URL.
-8. Add the final Vercel origin to Koyeb CORS.
-9. Redeploy Koyeb.
-10. Run production smoke tests.
-11. Enable or retain the daily GitHub Actions schedule.
+1. Configure GitHub Actions Chroma secrets.
+2. Run ingestion successfully.
+3. Create Streamlit Community Cloud app from this repo (`streamlit_app.py`).
+4. Paste Streamlit secrets.
+5. Open the `*.streamlit.app` URL and smoke-test factual + refusal questions.
+6. Keep the daily GitHub Actions schedule enabled.
 
-This order ensures the backend has indexed data before the first user request and
-prevents the frontend from being deployed against an unavailable API.
+## 7. Verification
 
-## 7. Production verification
+On the Streamlit app URL:
 
-### Backend checks
+- App loads without secret/config crash messages.
+- Factual scheme questions return answers with source links.
+- Follow-ups keep scheme context within the same browser session.
+- Advisory questions show the facts-only refusal path.
+- Chroma/Groq auth failures are visible as clear errors, not silent empty replies.
 
-```powershell
-curl.exe https://<koyeb-backend-domain>/health
-curl.exe -X POST https://<koyeb-backend-domain>/threads
-```
+Scheduler checks remain the same as before (manual dispatch, artifacts, Chroma
+counts).
 
-Expected health response:
+## 8. Monitoring and rollback
 
-```json
-{"status":"ok"}
-```
+- **GitHub Actions** — ingestion success/failure.
+- **Streamlit Cloud** — reboot app, view logs, update secrets, redeploy from `main`.
+- **Chroma / Groq** — vendor dashboards for auth and rate limits.
 
-Confirm that:
+Rollback: redeploy a previous Git commit from Streamlit Cloud, or revert `main`
+and let the app rebuild.
 
-- the application starts without falling back to the template generator;
-- Chroma retrieval returns current source chunks;
-- Groq generation succeeds;
-- unknown thread IDs return the expected API error;
-- logs do not expose API keys;
-- on free/eco, a redeploy may clear SQLite thread history.
+## 9. Release checklist
 
-### Frontend checks
-
-Confirm that:
-
-- the Vercel page loads over HTTPS;
-- the connection indicator reports the API as connected;
-- creating and switching threads works;
-- factual questions return answers and citations;
-- follow-up questions preserve the active scheme context;
-- advisory questions display the facts-only refusal;
-- browser requests show no CORS or mixed-content errors;
-- desktop and mobile layouts remain usable.
-
-### Scheduler checks
-
-Confirm that:
-
-- manual dispatch succeeds;
-- the next scheduled execution starts at the expected UTC time;
-- only one ingestion run executes at a time;
-- changed content replaces prior vectors;
-- schemes removed from the corpus manifest are removed from Chroma;
-- failed runs upload diagnostic artifacts.
-
-## 8. Monitoring and operations
-
-Review these systems daily during the initial rollout:
-
-- **GitHub Actions** — scheduler success, duration, and ingestion logs.
-- **Koyeb** — health checks, build failures, memory use, request errors, and
-  cold starts / scale-to-zero behavior.
-- **Vercel** — build failures and frontend deployment status.
-- **Chroma Cloud** — collection availability and record counts.
-- **Groq** — request errors, rate limits, and usage.
-
-Recommended alerts:
-
-- GitHub Actions scheduled workflow failure.
-- Koyeb health check failure.
-- Koyeb restart loop, OOM, or high error rate.
-- Groq or Chroma authentication/rate-limit errors.
-- Unexpected zero-vector or zero-document ingestion result.
-
-If scale-to-zero is enabled, the first API request after idle time can be slow.
-Handle reconnecting state in the frontend or keep at least one warm instance for
-better demo reliability.
-
-## 9. Rollback strategy
-
-### Frontend
-
-Use Vercel's deployment history to promote the previous successful deployment.
-
-### Backend
-
-Use Koyeb's deployment history or redeploy the previous known-good Git commit.
-Do not roll back environment variables unless the earlier application version
-requires different values.
-
-### Scheduler
-
-Disable the GitHub Actions schedule if ingestion is damaging or unreliable, then
-run a corrected workflow manually before re-enabling it.
-
-### Corpus data
-
-The latest-only retention policy intentionally does not maintain historical corpus
-versions. Application code can be rolled back, but an earlier vector corpus cannot
-be restored automatically. If corpus rollback becomes a production requirement,
-introduce versioned Chroma collections and switch the backend collection name only
-after a new collection passes validation.
-
-## 10. Release checklist
-
-- [ ] Production Chroma database and collection created.
-- [ ] GitHub Actions Chroma secrets configured.
-- [ ] Manual ingestion completed successfully.
-- [ ] Chroma document and vector counts validated.
-- [ ] Koyeb backend service created from this repository.
-- [ ] Koyeb production environment variables / secrets configured.
-- [ ] Free/ephemeral SQLite accepted, or paid Volume mounted for durability.
-- [ ] Backend `/health` check passing.
-- [ ] Vercel project configured with `ui` as its root.
-- [ ] `VITE_API_BASE_URL` points to the Koyeb HTTPS URL.
-- [ ] Koyeb CORS includes the exact Vercel production origin.
-- [ ] End-to-end factual and refusal queries verified.
-- [ ] Scheduler failure artifacts verified.
-- [ ] Monitoring ownership and rollback responsibility assigned.
+- [ ] Successful ingestion into production Chroma collection.
+- [ ] Streamlit Community Cloud app created from `streamlit_app.py`.
+- [ ] Streamlit secrets configured (Chroma + Groq + embedding settings).
+- [ ] Public `*.streamlit.app` URL works over HTTPS.
+- [ ] Factual and refusal smoke tests passed.
+- [ ] Scheduler remains enabled after a green run.

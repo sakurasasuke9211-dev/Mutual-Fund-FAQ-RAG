@@ -1241,7 +1241,8 @@ erDiagram
 
 | Layer | Options |
 |-------|---------|
-| **Frontend** | React + TypeScript + Vite (Vercel) |
+| **Frontend / hosted app** | Streamlit Community Cloud (`streamlit_app.py`) for free production; React + Vite (`ui/`) for local/optional hosting |
+| **Backend API** | FastAPI for local/dev and optional paid REST hosting; Streamlit free path runs RAG in-process |
 | **Backend** | FastAPI (Python) |
 | **LLM** | OpenAI GPT-4o-mini / Azure OpenAI / local Llama 3 (with strict prompts) |
 | **Embeddings** | `BAAI/bge-small-en-v1.5` via `sentence-transformers` (384-dim) |
@@ -1416,7 +1417,7 @@ The full cross-phase failure and boundary-condition backlog is maintained in
 | **Phase 2** | RAG core: `retrieval/`, `generation/`, `citation/`, `rag/` | 1 week | **Done** |
 | **Phase 3** | Query/response guardrails + refusal handler (`guardrails/`) | 3–4 days | **Done** |
 | **Phase 4** | Thread manager + FastAPI (`POST /chat`) | 2–3 days | **Done** |
-| **Phase 5** | Responsive React UI + API integration + Vercel/Koyeb deploy config | 2–3 days | **Done** |
+| **Phase 5** | Streamlit Cloud free app + optional React/FastAPI local stack | 2–3 days | **Done** |
 | **Phase 6** | Eval dataset, runtime tests, observability, README | 3–4 days | Partial |
 | **Phase 7** | SQLite multi-thread persistence (§7) | 1–2 days | **Done** |
 
@@ -1469,7 +1470,8 @@ The full cross-phase failure and boundary-condition backlog is maintained in
 - [x] Persistent disclaimer, privacy warning, and example questions
 - [x] Thread sidebar, message history, citations, refusals, and error states
 - [x] Typed API integration with `POST /chat` and thread endpoints
-- [x] Vercel UI + Koyeb FastAPI deploy configuration and CORS settings
+- [x] Streamlit Community Cloud free deployment path (`streamlit_app.py`) and secrets template
+- [x] Optional React UI + FastAPI CORS configuration for local/dev
 
 ---
 
@@ -1479,7 +1481,7 @@ This architecture implements a **compliance-first RAG pipeline** for mutual fund
 
 - **Offline (daily 9:15 AM IST):** GitHub Actions triggers Scraping Service → fetch 5 Groww HDFC pages → chunk → embed → index changed content (**Phase 1 — done**)
 - **Online (Phases 2–4 — done):** Guardrails → RAG → `POST /chat` + threads (`uvicorn app.main:app`)
-- **Online (Phase 5 — done):** React UI on Vercel; FastAPI backend on Koyeb
+- **Online (Phase 5 — done):** Streamlit Community Cloud hosts the free production FAQ app; React/FastAPI remain for local or optional paid REST hosting
 - **Refuse:** Block advisory, PII, and low-confidence queries with educational links
 - **Deliver:** Multi-thread chat UI with facts-only disclaimer and source-backed 3-sentence answers
 

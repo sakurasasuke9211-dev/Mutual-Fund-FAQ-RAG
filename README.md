@@ -23,7 +23,7 @@ Facts-only mutual fund FAQ assistant using RAG over Groww HDFC scheme pages.
 | **4 — API & threads** | `app/` | Implemented |
 | **7 — Thread persistence** | `app/services/thread_store.py` | Implemented (SQLite) |
 
-| **5 — UI** | `ui/` | Implemented (React + Vite, Vercel-ready) |
+| **5 — UI** | `ui/` + `streamlit_app.py` | Implemented (React local + Streamlit Cloud free host) |
 
 | **6 — Tests & eval** | `tests/` | Partial (Phases 1–4 unit + API tests) |
 
@@ -181,9 +181,19 @@ npm install
 npm run dev
 ```
 
-The UI opens at `http://localhost:5173`. The production target is Vercel for the
-frontend, Koyeb for the FastAPI backend, and GitHub Actions for ingestion. See the
-[deployment plan](docs/deployment-plan.md) and `ui/README.md`.
+The UI opens at `http://localhost:5173`. Free production hosting uses Streamlit
+Community Cloud (`streamlit_app.py`). GitHub Actions remains the ingestion
+scheduler. See the [deployment plan](docs/deployment-plan.md).
+
+### Streamlit (free production app)
+
+```powershell
+python -m streamlit run streamlit_app.py
+```
+
+Deploy from [share.streamlit.io](https://share.streamlit.io/) with main file
+`streamlit_app.py` and paste secrets from `.streamlit/secrets.toml.example`.
+The public URL looks like `https://<app-name>.streamlit.app` (app UI, not FastAPI).
 
 
 
