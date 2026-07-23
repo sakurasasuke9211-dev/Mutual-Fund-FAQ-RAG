@@ -34,18 +34,18 @@ The value is embedded at build time. Do not put Groq, Chroma, or any other secre
 1. Import the GitHub repository into Vercel.
 2. Set the root directory to `ui` and use the Vite framework preset.
 3. Use `npm ci`, `npm run build`, and the `dist` output directory.
-4. Set `VITE_API_BASE_URL` to the public HTTPS URL of the Render FastAPI backend, without a trailing slash.
+4. Set `VITE_API_BASE_URL` to the public HTTPS URL of the Koyeb FastAPI backend, without a trailing slash.
 5. Deploy the frontend.
-6. On the Render backend service, set:
+6. On the Koyeb backend service, set:
 
    ```env
    CORS_ALLOWED_ORIGINS=https://your-project.vercel.app
    ```
 
-   Replace the value with the actual frontend URL and restart the backend.
+   Replace the value with the actual frontend URL and redeploy the backend.
 
 See [`docs/deployment-plan.md`](../docs/deployment-plan.md) for the complete
-GitHub Actions, Vercel, Render, Chroma, persistence, verification, and rollback
+GitHub Actions, Vercel, Koyeb, Chroma, persistence, verification, and rollback
 plan.
 
 ## Checks

@@ -23,7 +23,7 @@ Facts-only mutual fund FAQ assistant using RAG over Groww HDFC scheme pages.
 | **4 — API & threads** | `app/` | Implemented |
 | **7 — Thread persistence** | `app/services/thread_store.py` | Implemented (SQLite) |
 
-| **5 — UI** | `ui/` | Implemented (React + Vite, Render-ready) |
+| **5 — UI** | `ui/` | Implemented (React + Vite, Vercel-ready) |
 
 | **6 — Tests & eval** | `tests/` | Partial (Phases 1–4 unit + API tests) |
 
@@ -182,7 +182,7 @@ npm run dev
 ```
 
 The UI opens at `http://localhost:5173`. The production target is Vercel for the
-frontend, Render for the FastAPI backend, and GitHub Actions for ingestion. See the
+frontend, Koyeb for the FastAPI backend, and GitHub Actions for ingestion. See the
 [deployment plan](docs/deployment-plan.md) and `ui/README.md`.
 
 

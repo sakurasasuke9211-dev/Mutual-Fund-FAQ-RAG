@@ -319,7 +319,7 @@ These are release-blocking properties regardless of individual case:
 | THR-004 | SQLite file missing | Create schema safely | Medium | Integration |
 | THR-005 | SQLite file corrupt, locked, read-only, disk full, or migration mismatch | Fail readiness/operation clearly; no silent memory fallback | High | Fault |
 | THR-006 | Two API workers use SQLite | Evaluate lock contention and documented single-instance limitation | High | Load |
-| THR-007 | Render restarts without persistent disk | Document/alert that thread history is lost; use external/shared store for production | High | Deployment |
+| THR-007 | Koyeb redeploys without durable volume | Document/alert that free/eco SQLite thread history is lost; attach a paid Volume or external store for durable production | High | Deployment |
 | THR-008 | Assistant metadata JSON is malformed or has unexpected types | Do not crash history endpoint/UI; quarantine bad record | Medium | Fault |
 
 ## 14. API behavior, concurrency, and security
@@ -333,7 +333,7 @@ These are release-blocking properties regardless of individual case:
 | API-005 | Duplicate client retry submits same query twice | Support idempotency or clearly document duplicate-turn behavior | Medium | Integration |
 | API-006 | Many simultaneous chats hit shared model/vector store | Remain isolated and meet latency/error budget | High | Load |
 | API-007 | LLM/Chroma request exceeds timeout | Release worker/resources and return structured error/refusal | High | Fault |
-| API-008 | CORS origin is allowed local/Render frontend | Preflight and GET/POST succeed only for configured origins | High | API |
+| API-008 | CORS origin is allowed local/Vercel frontend | Preflight and GET/POST succeed only for configured origins | High | API |
 | API-009 | Malicious or wildcard origin calls API | CORS policy denies browser access; no credentials enabled accidentally | High | Security |
 | API-010 | Request body is huge, deeply nested, invalid JSON, or wrong content type | Reject early with bounded memory/CPU | High | Security |
 | API-011 | URL/path injection in thread ID | Route encoding and DB parameterization prevent traversal/SQL injection | Critical | Security |
@@ -341,9 +341,9 @@ These are release-blocking properties regardless of individual case:
 | API-013 | Thread list contains thousands of threads/messages | Pagination/limits or documented scalability bound; acceptable latency | Medium | Load |
 | API-014 | Server clock changes and timestamps tie | Stable ordering and UTC-aware values | Medium | Integration |
 | API-015 | Backend version/schema changes while old UI is deployed | UI handles missing optional fields and surfaces incompatible contract | High | Contract |
-| API-016 | HTTPS proxy/Render headers and host differ from local | URLs, CORS, and generated OpenAPI remain correct | Medium | Deployment |
+| API-016 | HTTPS proxy/Koyeb headers and host differ from local | URLs, CORS, and generated OpenAPI remain correct | Medium | Deployment |
 
-## 15. UI and Render deployment
+## 15. UI and Koyeb / Vercel deployment
 
 | ID | Edge case / stimulus | Expected behavior | Severity | Layer |
 |---|---|---|---|---|
@@ -359,9 +359,9 @@ These are release-blocking properties regardless of individual case:
 | UI-010 | Keyboard-only use and screen reader | Logical focus, labels, live regions, contrast, and reduced motion work | High | Accessibility |
 | UI-011 | Clipboard API unavailable or denied | Copy action fails gracefully | Low | E2E |
 | UI-012 | Source/education link is `javascript:`, non-HTTPS, or non-allowlisted due bad API data | Frontend refuses unsafe navigation as defense in depth | Critical | Security |
-| DEP-001 | `VITE_API_BASE_URL` missing at Render build | Fail build/readiness or display explicit configuration error; do not point production to localhost | High | Deployment |
+| DEP-001 | `VITE_API_BASE_URL` missing at Vercel build | Fail build/readiness or display explicit configuration error; do not point production to localhost | High | Deployment |
 | DEP-002 | API URL has trailing slash/path or uses HTTP from HTTPS site | Normalize correctly; prevent mixed-content failure | High | Deployment |
-| DEP-003 | SPA deep link refresh | Render rewrite serves `index.html` | Medium | Deployment |
+| DEP-003 | SPA deep link refresh | Vercel SPA rewrite serves `index.html` | Medium | Deployment |
 | DEP-004 | Node/Python version changes | Locked/supported versions build reproducibly | Medium | Deployment |
 | DEP-005 | Backend cold start exceeds frontend timeout | User sees recoverable state and can retry | Medium | E2E |
 | DEP-006 | Secrets are mistakenly prefixed `VITE_` or bundled into assets | Build/security scan fails | Critical | Security |
@@ -397,7 +397,7 @@ These scenarios exercise interactions that isolated unit tests will miss.
 | CMP-006 | Prompt injection exists both in scraped content and user query | Neither source nor user can override guardrails/citation policy | Critical | Security E2E |
 | CMP-007 | Chroma is unavailable, Groq is healthy, BM25 cache is stale | Do not generate a confident answer from mismatched/stale context | Critical | Fault E2E |
 | CMP-008 | Groq returns advisory text with a valid factual citation | Response validator converts it to facts-only refusal | Critical | Fault E2E |
-| CMP-009 | Render restarts API, SQLite history disappears, browser retains old thread ID | UI recovers with new thread and clearly avoids mixing context | High | Deployment E2E |
+| CMP-009 | Koyeb redeploys API, ephemeral SQLite history disappears, browser retains old thread ID | UI recovers with new thread and clearly avoids mixing context | High | Deployment E2E |
 | CMP-010 | Two users concurrently create/switch threads and ask same generic follow-up | Correct independent schemes and message ordering for both | Critical | Load E2E |
 | CMP-011 | Scheduler and API use different Chroma tenant/collection after deployment change | Readiness/evaluation detects zero/mismatched corpus before user traffic | Critical | Deployment |
 | CMP-012 | Fund page changes label and value format, creating 23 chunks instead of documented 45–60 | Quality gate detects structural drift before new index is promoted | High | Evaluation |
@@ -421,7 +421,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 | GAP-011 | User switches from thread A to B while A’s request is in flight | Completed response updates A only and never appears in B’s visible state | High | Browser E2E |
 | GAP-012 | Dense retrieval, corpus listing, reranker, or citation resolver raises an unhandled exception | API returns sanitized controlled service/refusal response, not HTTP 500 | High | Fault integration |
 | GAP-013 | Public API response exposes internal `chunk_ids` | Limit audit identifiers to trusted telemetry/contracts or document intentional exposure | Medium | Security review |
-| GAP-014 | Root Render blueprint deploys only the UI | Backend deployment, persistence, secrets, health, and CORS are defined or explicitly provisioned separately | High | Deployment |
+| GAP-014 | Repository deploy artifacts cover Koyeb API + Vercel UI | Backend deployment, secrets, health, CORS, and frontend build settings are defined or explicitly provisioned | High | Deployment |
 | GAP-015 | `/health` returns OK while Chroma, LLM, model, corpus, or SQLite is unavailable | Separate liveness/readiness reports dependency degradation accurately | High | Integration |
 | GAP-016 | Source has not refreshed for more than freshness policy | API/UI display per-scheme stale warning; fetch freshness and content-change time remain distinct | High | E2E |
 | GAP-017 | Priority facts exist in `data/facts` but runtime answers never read them | Exact-metric routing contract is implemented or architecture is revised; facts and RAG values stay consistent | High | Architecture integration |
@@ -442,7 +442,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 6. **Chunk-count drift:** the detailed architecture estimates roughly 45–60 chunks, while observed v1 runs can produce about 23; establish an approved baseline and alert range.
 7. **Fund-size plausibility:** repeated identical fund-size values across unrelated schemes should trigger a parser-quality alarm.
 8. **Runtime corpus cache:** BM25 corpus caching requires an invalidation/restart strategy after ingestion updates.
-9. **Production thread storage:** SQLite is not a shared multi-instance store and is ephemeral on Render without a persistent disk.
+9. **Production thread storage:** SQLite is not a shared multi-instance store and is ephemeral on free/eco Koyeb without a paid Volume.
 10. **Silent LLM fallback:** missing provider keys must not silently downgrade a production deployment to template generation.
 11. **Readiness depth:** `/health` should be evaluated against Chroma/model/thread-store readiness, not process liveness alone.
 12. **Exact allowlist semantics:** architecture mentions exact URLs or a prefix allowlist; choose one canonical policy and test redirects/query strings consistently.
@@ -468,7 +468,7 @@ The following are not merely hypothetical inputs; they are high-risk contracts w
 - End-to-end browser tests on desktop/mobile.
 - Fault injection for provider timeout, Chroma partial failure, and restart recovery.
 - Concurrent thread isolation/load test.
-- Render deployment smoke test with cold starts and CORS.
+- Koyeb / Vercel deployment smoke test with cold starts and CORS.
 
 ### Required targets
 

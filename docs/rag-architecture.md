@@ -1241,7 +1241,7 @@ erDiagram
 
 | Layer | Options |
 |-------|---------|
-| **Frontend** | React + TypeScript + Vite (Render Static Site) |
+| **Frontend** | React + TypeScript + Vite (Vercel) |
 | **Backend** | FastAPI (Python) |
 | **LLM** | OpenAI GPT-4o-mini / Azure OpenAI / local Llama 3 (with strict prompts) |
 | **Embeddings** | `BAAI/bge-small-en-v1.5` via `sentence-transformers` (384-dim) |
@@ -1416,7 +1416,7 @@ The full cross-phase failure and boundary-condition backlog is maintained in
 | **Phase 2** | RAG core: `retrieval/`, `generation/`, `citation/`, `rag/` | 1 week | **Done** |
 | **Phase 3** | Query/response guardrails + refusal handler (`guardrails/`) | 3–4 days | **Done** |
 | **Phase 4** | Thread manager + FastAPI (`POST /chat`) | 2–3 days | **Done** |
-| **Phase 5** | Responsive React UI + API integration + Render config | 2–3 days | **Done** |
+| **Phase 5** | Responsive React UI + API integration + Vercel/Koyeb deploy config | 2–3 days | **Done** |
 | **Phase 6** | Eval dataset, runtime tests, observability, README | 3–4 days | Partial |
 | **Phase 7** | SQLite multi-thread persistence (§7) | 1–2 days | **Done** |
 
@@ -1469,7 +1469,7 @@ The full cross-phase failure and boundary-condition backlog is maintained in
 - [x] Persistent disclaimer, privacy warning, and example questions
 - [x] Thread sidebar, message history, citations, refusals, and error states
 - [x] Typed API integration with `POST /chat` and thread endpoints
-- [x] Render Static Site blueprint and FastAPI CORS configuration
+- [x] Vercel UI + Koyeb FastAPI deploy configuration and CORS settings
 
 ---
 
@@ -1479,7 +1479,7 @@ This architecture implements a **compliance-first RAG pipeline** for mutual fund
 
 - **Offline (daily 9:15 AM IST):** GitHub Actions triggers Scraping Service → fetch 5 Groww HDFC pages → chunk → embed → index changed content (**Phase 1 — done**)
 - **Online (Phases 2–4 — done):** Guardrails → RAG → `POST /chat` + threads (`uvicorn app.main:app`)
-- **Online (Phase 5 — done):** React UI deployed as a Render Static Site
+- **Online (Phase 5 — done):** React UI on Vercel; FastAPI backend on Koyeb
 - **Refuse:** Block advisory, PII, and low-confidence queries with educational links
 - **Deliver:** Multi-thread chat UI with facts-only disclaimer and source-backed 3-sentence answers
 
