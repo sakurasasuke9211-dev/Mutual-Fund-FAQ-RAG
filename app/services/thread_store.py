@@ -9,7 +9,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Literal
 
-from app.services.thread_models import StoredMessage, StoredThread, ThreadNotFoundError
+from app.services.thread_models import StoredMessage, StoredThread, ThreadNotFoundError, preview_thread_title
 
 
 def _utc_now() -> datetime:
@@ -78,7 +78,11 @@ class InMemoryThreadStore(ThreadStore):
     def list_threads(self) -> list[StoredThread]:
         with self._lock:
             threads = list(self._threads.values())
-        return sorted(threads, key=lambda item: item.updated_at, reverse=True)
+        listed = sorted(threads, key=lambda item: item.updated_at, reverse=True)
+        for thread in listed:
+            thread.title = preview_thread_title(thread.messages)
+            thread.message_count = len(thread.messages)
+        return listed
 
     def get_thread(self, thread_id: str) -> StoredThread:
         with self._lock:
@@ -183,7 +187,15 @@ class SqliteThreadStore(ThreadStore):
                         t.thread_id,
                         t.created_at,
                         t.updated_at,
-                        COUNT(m.message_id) AS message_count
+                        COUNT(m.message_id) AS message_count,
+                        (
+                            SELECT content
+                            FROM messages first_user
+                            WHERE first_user.thread_id = t.thread_id
+                              AND first_user.role = 'user'
+                            ORDER BY first_user.created_at ASC
+                            LIMIT 1
+                        ) AS first_user_content
                     FROM threads t
                     LEFT JOIN messages m ON m.thread_id = t.thread_id
                     GROUP BY t.thread_id, t.created_at, t.updated_at
@@ -191,16 +203,36 @@ class SqliteThreadStore(ThreadStore):
                     """
                 ).fetchall()
 
-        return [
-            StoredThread(
-                thread_id=str(row["thread_id"]),
-                created_at=_dt_from_iso(str(row["created_at"])),
-                updated_at=_dt_from_iso(str(row["updated_at"])),
-                messages=[],
-                message_count=int(row["message_count"]),
+        result: list[StoredThread] = []
+        for row in rows:
+            first_user = row["first_user_content"]
+            title = (
+                preview_thread_title(
+                    [
+                        StoredMessage(
+                            message_id="preview",
+                            thread_id=str(row["thread_id"]),
+                            role="user",
+                            content=str(first_user),
+                            metadata={},
+                            created_at=_dt_from_iso(str(row["created_at"])),
+                        )
+                    ]
+                )
+                if first_user
+                else "New conversation"
             )
-            for row in rows
-        ]
+            result.append(
+                StoredThread(
+                    thread_id=str(row["thread_id"]),
+                    created_at=_dt_from_iso(str(row["created_at"])),
+                    updated_at=_dt_from_iso(str(row["updated_at"])),
+                    messages=[],
+                    message_count=int(row["message_count"]),
+                    title=title,
+                )
+            )
+        return result
 
     def get_thread(self, thread_id: str) -> StoredThread:
         with self._lock:

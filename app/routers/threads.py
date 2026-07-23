@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from app.dependencies import ThreadManagerDep
 from app.schemas import CreateThreadResponse, MessageRecord, ThreadSummary
 from app.services.thread_manager import ThreadNotFoundError
+from app.services.thread_models import preview_thread_title
 
 router = APIRouter(prefix="/threads", tags=["threads"])
 
@@ -19,6 +20,8 @@ def list_threads(threads: ThreadManagerDep) -> list[ThreadSummary]:
             message_count=(
                 thread.message_count if thread.message_count is not None else len(thread.messages)
             ),
+            title=thread.title
+            or preview_thread_title(thread.messages),
         )
         for thread in threads.list_threads()
     ]

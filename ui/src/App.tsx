@@ -18,6 +18,23 @@ function shortThreadName(threadId: string) {
   return `Conversation ${threadId.slice(0, 8)}`
 }
 
+/** Prefer first-question titles from the API; otherwise Conversation 1, 2, … by age. */
+function conversationLabels(threads: ThreadSummary[]): Map<string, string> {
+  const byCreated = [...threads].sort(
+    (left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime(),
+  )
+  const labels = new Map<string, string>()
+  byCreated.forEach((thread, index) => {
+    const title = thread.title?.trim()
+    if (title && title !== 'New conversation') {
+      labels.set(thread.thread_id, title)
+    } else {
+      labels.set(thread.thread_id, `Conversation ${index + 1}`)
+    }
+  })
+  return labels
+}
+
 function relativeTime(value: string) {
   const seconds = Math.round((new Date(value).getTime() - Date.now()) / 1000)
   const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
@@ -136,6 +153,7 @@ function App() {
         created_at: created.created_at,
         updated_at: created.created_at,
         message_count: 0,
+        title: 'New conversation',
       }
       setThreads((current) => [thread, ...current])
       setActiveThreadId(created.thread_id)
@@ -211,7 +229,10 @@ function App() {
     }
   }
 
-  const activeThread = threads.find((thread) => thread.thread_id === activeThreadId)
+  const threadLabels = conversationLabels(threads)
+  const activeLabel = activeThreadId
+    ? threadLabels.get(activeThreadId) || shortThreadName(activeThreadId)
+    : null
 
   return (
     <div className="app-shell">
@@ -237,7 +258,7 @@ function App() {
               >
                 <MessageSquareText size={16} />
                 <span>
-                  <strong>{shortThreadName(thread.thread_id)}</strong>
+                  <strong>{threadLabels.get(thread.thread_id) || shortThreadName(thread.thread_id)}</strong>
                   <small>{thread.message_count} messages · {relativeTime(thread.updated_at)}</small>
                 </span>
               </button>
@@ -253,7 +274,7 @@ function App() {
       <main className="main">
         <header className="topbar">
           <button className="icon-button mobile-menu" onClick={() => setSidebarOpen(true)} aria-label="Open conversations"><Menu size={21} /></button>
-          <div><strong>{activeThread ? shortThreadName(activeThread.thread_id) : 'FundFacts Assistant'}</strong><small>Source-backed mutual fund information</small></div>
+          <div><strong>{activeLabel || 'FundFacts Assistant'}</strong><small>Source-backed mutual fund information</small></div>
           <div className={`connection connection--${connection}`}>
             <span />{connection === 'connected' ? 'Connected' : connection === 'checking' ? 'Checking' : 'Disconnected'}
           </div>

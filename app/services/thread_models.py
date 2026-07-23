@@ -26,3 +26,23 @@ class StoredThread:
     updated_at: datetime
     messages: list[StoredMessage] = field(default_factory=list)
     message_count: int | None = None
+    title: str | None = None
+
+
+def preview_thread_title(
+    messages: list[StoredMessage],
+    *,
+    fallback: str = "New conversation",
+    max_length: int = 48,
+) -> str:
+    """Build a sidebar-friendly title from the first user message."""
+    for message in messages:
+        if message.role != "user":
+            continue
+        text = " ".join(message.content.split())
+        if not text:
+            continue
+        if len(text) <= max_length:
+            return text
+        return text[: max_length - 1].rstrip() + "…"
+    return fallback

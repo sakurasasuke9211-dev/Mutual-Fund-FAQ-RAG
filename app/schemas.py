@@ -11,6 +11,7 @@ class ThreadSummary(BaseModel):
     created_at: datetime
     updated_at: datetime
     message_count: int
+    title: str = "New conversation"
 
 
 class CreateThreadResponse(BaseModel):

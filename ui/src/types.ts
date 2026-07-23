@@ -5,6 +5,7 @@ export interface ThreadSummary {
   created_at: string
   updated_at: string
   message_count: number
+  title?: string
 }
 
 export interface MessageMetadata {
