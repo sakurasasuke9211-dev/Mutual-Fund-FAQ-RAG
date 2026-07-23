@@ -151,12 +151,18 @@ function App() {
 
   async function sendQuestion(question = draft) {
     const query = question.trim()
-    if (!query || isSending || query.length > 500) return
+    if (!query || isSending || isLoadingThreads || query.length > 500) return
     setIsSending(true)
     setChatError(null)
     setDraft('')
 
     let threadId = activeThreadId
+    // Railway memory/ephemeral store drops threads on redeploy; localStorage can go stale.
+    if (threadId && !threads.some((thread) => thread.thread_id === threadId)) {
+      localStorage.removeItem(ACTIVE_THREAD_KEY)
+      setActiveThreadId(null)
+      threadId = null
+    }
     if (!threadId) threadId = await createThread()
     if (!threadId) {
       setDraft(query)
@@ -175,7 +181,25 @@ function App() {
     setMessages((current) => [...current, optimistic])
 
     try {
-      const response = await api.chat(threadId, query)
+      let response: ChatResponse
+      try {
+        response = await api.chat(threadId, query)
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 404) throw error
+        localStorage.removeItem(ACTIVE_THREAD_KEY)
+        setActiveThreadId(null)
+        const freshThreadId = await createThread()
+        if (!freshThreadId) throw error
+        threadId = freshThreadId
+        setMessages((current) =>
+          current.map((message) =>
+            message.message_id === optimistic.message_id
+              ? { ...message, thread_id: freshThreadId }
+              : message,
+          ),
+        )
+        response = await api.chat(freshThreadId, query)
+      }
       setMessages((current) => [...current, toAssistantMessage(response)])
       await loadThreads()
     } catch (error) {
@@ -284,12 +308,12 @@ function App() {
               maxLength={500}
               placeholder="Ask about expense ratio, exit load, SIP minimum, lock-in…"
               aria-label="Ask a factual mutual fund question"
-              disabled={isSending || connection === 'disconnected'}
+              disabled={isSending || isLoadingThreads || connection === 'disconnected'}
             />
             <button
               className="send-button"
               onClick={() => void sendQuestion()}
-              disabled={!draft.trim() || isSending || connection === 'disconnected'}
+              disabled={!draft.trim() || isSending || isLoadingThreads || connection === 'disconnected'}
               aria-label="Send question"
             ><Send size={18} /></button>
           </div>
