@@ -1,5 +1,6 @@
 # Runtime dependencies for the FastAPI query service (Railway / uvicorn).
 # Full ingest + Streamlit + tests still use requirements.txt.
+# chromadb must be 1.x+ so Chroma Cloud uses /api/v2 (v1 returns 410 Gone).
 
 rank-bm25==0.2.2
 fastapi==0.115.0
@@ -7,6 +8,6 @@ uvicorn[standard]==0.30.6
 httpx==0.27.2
 pyyaml==6.0.2
 beautifulsoup4==4.12.3
-chromadb==0.5.5
+chromadb>=1.0.0,<2
 sentence-transformers>=3.0.0,<6
 python-dotenv==1.0.1

@@ -252,7 +252,11 @@ class VectorStore:
         try:
             return chromadb.CloudClient(**kwargs)
         except Exception as exc:
-            raise VectorStoreError("Failed to connect to Chroma Cloud") from exc
+            raise VectorStoreError(
+                "Failed to connect to Chroma Cloud. "
+                "Confirm CHROMA_API_KEY / CHROMA_TENANT / CHROMA_DATABASE and that "
+                "chromadb>=1.0 is installed (Cloud v1 API is deprecated)."
+            ) from exc
 
     @staticmethod
     def _metadata_to_store(chunk: Chunk) -> dict[str, str | int]:
