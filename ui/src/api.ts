@@ -1,7 +1,8 @@
 import type { ChatResponse, MessageRecord, ThreadSummary } from './types'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001').replace(/\/$/, '')
-const REQUEST_TIMEOUT_MS = 45_000
+// Railway first chat can load embedding/reranker models (~60s+); keep headroom.
+const REQUEST_TIMEOUT_MS = 120_000
 
 export class ApiError extends Error {
   status: number

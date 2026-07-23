@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
     if getattr(app.state, "pipeline", None) is None:
         try:
             app.state.pipeline = build_rag_pipeline(guardrails_enabled=True)
+            app.state.pipeline.warm()
         except Exception as exc:
             raise RuntimeError(
                 f"Failed to initialize RAG pipeline: {exc}. "

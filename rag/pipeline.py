@@ -130,6 +130,17 @@ class RAGPipeline:
             last_updated=str(guarded.last_updated or ""),
         )
 
+    def warm(self) -> None:
+        """Eagerly load embedding and reranker models before serving traffic."""
+        logger.info("Warming RAG models…")
+        self.retriever.dense_retriever.embedding_service.provider.embed_texts(
+            ["warmup mutual fund expense ratio"]
+        )
+        get_model = getattr(self.retriever.reranker, "_get_model", None)
+        if callable(get_model):
+            get_model()
+        logger.info("RAG models ready")
+
     @staticmethod
     def _build_retriever(config: RAGConfig) -> HybridRetriever:
         embedding_service = EmbeddingService(config=load_embedding_config())
